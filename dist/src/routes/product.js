@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.productRoutes = void 0;
+const hono_1 = require("hono");
+const productController_1 = require("../controllers/productController");
+const authMiddleware_1 = require("../middlewares/authMiddleware");
+exports.productRoutes = new hono_1.Hono();
+const authMiddleware = new authMiddleware_1.AuthMiddleware();
+const productsController = new productController_1.ProductController();
+exports.productRoutes.get('/:productId', productsController.getSingleProduct);
+exports.productRoutes.get('/', productsController.listProducts);
+exports.productRoutes.post('/', authMiddleware.checkAuthHeader, authMiddleware.validateAccessToken, productsController.addProduct);
+exports.productRoutes.put('/:productId', authMiddleware.checkAuthHeader, authMiddleware.validateAccessToken, productsController.updateProductQuantity);
+exports.productRoutes.delete('/:productId', authMiddleware.checkAuthHeader, authMiddleware.validateAccessToken, productsController.deleteProduct);
+exports.productRoutes.put('/:productId', authMiddleware.checkAuthHeader, authMiddleware.validateAccessToken, productsController.updateProductData);
