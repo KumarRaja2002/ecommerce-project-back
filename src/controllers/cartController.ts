@@ -4,26 +4,32 @@ import { db } from '../lib/db';
 import { products } from '../schemas/product';
 import { cartItems } from '../schemas/cartItem';
 import { eq,sql } from 'drizzle-orm';
-
+const cartService = new CartService();
 export class CartController {
-  private cartService = new CartService();
+  
 
   async addToCart(c: Context) {
     const user = c.get('user');
-    const { productId,quantity } = await c.req.json(); // Fixed quantity = 1
-
+    const { productId, quantity } = await c.req.json(); // Fixed quantity = 1
+  
     try {
       const createdCartItem = await db.transaction(async (tx) => {
         // Check if the product exists and has sufficient stock
         const product = await tx
           .select()
           .from(products)
-          .where(eq(products.id, productId))
-
+          .where(eq(products.id, productId));
+  
         if (!product || product[0].quantity < quantity) {
           throw new Error('Product is out of stock');
         }
-
+  
+        // Retrieve product price
+        const productPrice = product[0].price; // Assuming price is stored in the product table
+  
+        // Calculate total price
+        const totalPrice = productPrice * quantity;
+  
         // Add item to the cart
         const cartItem = await tx
           .insert(cartItems)
@@ -31,29 +37,31 @@ export class CartController {
             user_id: user.id,
             product_id: productId,
             quantity: quantity, // Fixed quantity
+            total_price: totalPrice, // Store the total price in the cart item
           })
           .returning();
-
-        // Reduce the product quantity by 1
+  
+        // Reduce the product quantity by the purchased amount
         await tx
           .update(products)
           .set({ quantity: sql`${products.quantity} - ${quantity}` })
           .where(eq(products.id, productId));
-
-        // Return the created cart item
-        return cartItem[0];
+  
+        // Return the created cart item and total price
+        return { cartItem: cartItem[0], totalPrice };
       });
-
+  
       return c.json({ message: 'Item added to cart', createdCartItem });
     } catch (error) {
       console.error('Error adding to cart:', error);
       return c.json({ message: 'Error adding to cart', error: (error as Error).message }, 500);
     }
   }
+  
 
   async getCartItems(c: Context) {
     const user = c.get('user');
-    const cartItems = await this.cartService.getCartItems(user.id);
+    const cartItems = await cartService.getCartItems(user.id);
     return c.json(cartItems);
   }
 
