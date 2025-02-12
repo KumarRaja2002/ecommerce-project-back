@@ -20,9 +20,6 @@ userRoutes.post('/create-admin',
 // Sign In Route
 userRoutes.post('/signin', userController.signIn.bind(userController));
 
-// Get User by ID Route
-userRoutes.get('/:id', userController.getProfile.bind(userController));
-
 // Update User Route (Protected)
 userRoutes.patch('/:id', 
   authMiddleware.checkAuthHeader, 
